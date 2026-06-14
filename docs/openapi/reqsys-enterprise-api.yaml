@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: ReqSys Enterprise API
+  version: 1.0.0-java-padrao-ouro
+paths:
+  /api/v1/requisitos/refinar:
+    post:
+      summary: Refina requisito bruto em requisito testável e rastreável
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Requisito refinado

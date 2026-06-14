@@ -1,0 +1,10 @@
+services:
+  maven:
+    image: maven:3.9.9-eclipse-temurin-21
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace
+      - maven-repo:/root/.m2
+
+volumes:
+  maven-repo:

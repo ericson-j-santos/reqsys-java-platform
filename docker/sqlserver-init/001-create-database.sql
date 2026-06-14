@@ -1,0 +1,5 @@
+IF DB_ID('reqsys') IS NULL
+BEGIN
+    CREATE DATABASE reqsys;
+END;
+GO

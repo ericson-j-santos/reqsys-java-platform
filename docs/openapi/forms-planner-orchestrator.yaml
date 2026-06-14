@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Forms Planner Orchestrator API
+  version: 1.0.0-java-padrao-ouro
+paths:
+  /api/v1/solicitacoes:
+    post:
+      summary: Recebe solicitação originada de Forms ou Power Automate
+      responses:
+        '201':
+          description: Solicitação criada
