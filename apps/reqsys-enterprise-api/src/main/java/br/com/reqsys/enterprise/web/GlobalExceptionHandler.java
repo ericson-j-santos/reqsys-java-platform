@@ -12,8 +12,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.Instant;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     @ExceptionHandler(ValidacaoNegocioException.class)
     public ResponseEntity<ErroResponse> validacaoNegocio(ValidacaoNegocioException ex) {
         return erro(HttpStatus.UNPROCESSABLE_ENTITY, ex.getCodigo(), ex.getMessage(), List.of());
@@ -27,8 +32,14 @@ public class GlobalExceptionHandler {
         return erro(HttpStatus.BAD_REQUEST, "VALIDACAO_ENTRADA", "Entrada inválida.", erros);
     }
 
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErroResponse> tokenInvalido(SecurityException ex) {
+        return erro(HttpStatus.UNAUTHORIZED, "COFRE_TOKEN_INVALIDO", ex.getMessage(), List.of());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErroResponse> erroInesperado(Exception ex) {
+        log.error("[Cofre] Erro interno inesperado", ex);
         return erro(HttpStatus.INTERNAL_SERVER_ERROR, "ERRO_INTERNO", "Erro interno não esperado.", List.of());
     }
 

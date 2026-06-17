@@ -1,0 +1,51 @@
+# Fly.io — reqsys-enterprise-api (cofre + API Java)
+# Uso: fly deploy --app reqsys-enterprise-api
+# Secrets: fly secrets set -a reqsys-enterprise-api DATABASE_URL=jdbc:postgresql://... REQSYS_COFRE_TOKEN=...
+
+app = "reqsys-enterprise-api"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  SPRING_PROFILES_ACTIVE = "prod"
+  SERVER_PORT = "8081"
+
+# Secrets obrigatórios via: fly secrets set -a reqsys-enterprise-api
+# DATABASE_URL       — jdbc:postgresql://host:5432/reqsys_cofre
+# DATABASE_USERNAME  — postgres
+# DATABASE_PASSWORD  — (gerado pelo Fly.io Postgres)
+# REQSYS_COFRE_TOKEN — token de acesso ao cofre (gerar aleatório)
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8081
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 50
+    soft_limit = 40
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "10s"
+    grace_period = "90s"
+    method = "GET"
+    path = "/actuator/health"
+
+[vm]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[deploy]
+  strategy = "rolling"

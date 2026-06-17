@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/postgresql-init.sql
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+  flyway:
+    enabled: false
+
+server:
+  port: ${SERVER_PORT:8081}
+
+reqsys:
+  cofre:
+    token: ${REQSYS_COFRE_TOKEN:}
+    seed-local: false
+
+logging:
+  level:
+    br.com.reqsys: INFO
+    org.hibernate.SQL: WARN

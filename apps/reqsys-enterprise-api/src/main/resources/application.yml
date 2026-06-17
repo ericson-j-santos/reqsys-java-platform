@@ -27,6 +27,12 @@ redmine:
   api-key:  ${REDMINE_API_KEY:}
   project-id: ${REDMINE_PROJECT_ID:reqsys}
 
+reqsys:
+  cofre:
+    # Token de acesso ao cofre — configurar REQSYS_COFRE_TOKEN no ambiente
+    # Se vazio, o endpoint fica sem proteção (somente para dev local)
+    token: ${REQSYS_COFRE_TOKEN:}
+
 logging:
   level:
     root: INFO

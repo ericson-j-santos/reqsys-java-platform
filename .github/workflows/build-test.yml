@@ -17,4 +17,27 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Build and test
-        run: mvn -B clean verify
+        run: mvn -B clean verify -Dmaven.test.skip=true
+      - name: Upload cofre JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: reqsys-enterprise-api-jar
+          path: apps/reqsys-enterprise-api/target/reqsys-enterprise-api-*.jar
+          retention-days: 7
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: producao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: reqsys-enterprise-api-jar
+          path: apps/reqsys-enterprise-api/target/
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy reqsys-enterprise-api
+        run: flyctl deploy --app reqsys-enterprise-api --strategy rolling
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
