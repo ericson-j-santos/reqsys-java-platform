@@ -21,7 +21,7 @@
 - Workflow `ci` remove `aquasecurity/trivy-action@0.24.0`, que falhava por tag inexistente, e instala Trivy via repositório oficial.
 - Workflow `build-test` deixa de rodar em PR e fica restrito a `main`/manual para evitar gates duplicados e conflitantes.
 - Workflow `security-scan` substitui `dependency-review-action` por CodeQL + OWASP Dependency-Check.
-- README registra decisão de release controlado: PR só sai de draft após CI e security-scan verdes.
+- README e `docs/producao-gates.md` registram decisão de release controlado: PR só sai de draft após workflows verdes.
 
 ### Corrigido
 
@@ -31,7 +31,7 @@
 
 ### Pendências controladas
 
-- Validar execução real do novo CI após push da branch.
+- Validar execução real dos workflows no último commit da branch.
 - Adicionar tracing OpenTelemetry ponta a ponta.
 - Adicionar dashboard operacional mínimo para métricas de idempotência, outbox e DLQ.
 
