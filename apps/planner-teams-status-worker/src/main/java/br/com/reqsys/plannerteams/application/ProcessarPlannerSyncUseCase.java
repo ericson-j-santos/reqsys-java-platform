@@ -1,5 +1,6 @@
 package br.com.reqsys.plannerteams.application;
 
+import br.com.reqsys.graph.TeamsPort;
 import br.com.reqsys.plannerteams.web.dto.PlannerSyncRequest;
 import br.com.reqsys.plannerteams.web.dto.PlannerSyncResponse;
 import org.springframework.stereotype.Service;
@@ -10,13 +11,25 @@ import java.util.UUID;
 @Service
 public class ProcessarPlannerSyncUseCase {
 
+    private final TeamsPort teamsPort;
+
+    public ProcessarPlannerSyncUseCase(TeamsPort teamsPort) {
+        this.teamsPort = teamsPort;
+    }
+
     @Transactional
     public PlannerSyncResponse executar(String correlationId, String idempotencyKey, PlannerSyncRequest request) {
         validarCorrelationId(correlationId);
-        String acao = request.statusAnterior().equals(request.statusAtual())
-                ? "SEM_ALTERACAO"
-                : "NOTIFICACAO_ENFILEIRADA";
-        return new PlannerSyncResponse(UUID.randomUUID().toString(), "PROCESSADO", acao);
+        validarRequest(request);
+
+        if (request.statusAnterior().equals(request.statusAtual())) {
+            return new PlannerSyncResponse(UUID.randomUUID().toString(), "PROCESSADO", "SEM_ALTERACAO");
+        }
+
+        String mensagem = montarMensagem(correlationId, idempotencyKey, request);
+        teamsPort.enviarMensagemUsuario(request.destinatario(), mensagem);
+
+        return new PlannerSyncResponse(UUID.randomUUID().toString(), "PROCESSADO", "NOTIFICACAO_TEAMS_DISPARADA");
     }
 
     private void validarCorrelationId(String correlationId) {
@@ -25,7 +38,22 @@ public class ProcessarPlannerSyncUseCase {
         }
     }
 
-    private String normalizarAtor(String ator) {
-        return ator == null || ator.isBlank() ? "usuário" : ator;
+    private void validarRequest(PlannerSyncRequest request) {
+        if (!teamsPort.usuarioExiste(request.destinatario())) {
+            throw new IllegalArgumentException("Destinatário Teams inválido ou inexistente.");
+        }
+    }
+
+    private String montarMensagem(String correlationId, String idempotencyKey, PlannerSyncRequest request) {
+        String chaveIdempotencia = idempotencyKey == null || idempotencyKey.isBlank()
+                ? "não informada"
+                : idempotencyKey;
+
+        return "## Atualização de tarefa Planner\n\n"
+                + "A tarefa `" + request.taskId() + "` teve alteração de status no ReqSys.\n\n"
+                + "- Status anterior: `" + request.statusAnterior() + "`\n"
+                + "- Status atual: `" + request.statusAtual() + "`\n"
+                + "- Correlation ID: `" + correlationId + "`\n"
+                + "- Idempotency Key: `" + chaveIdempotencia + "`\n";
     }
 }
