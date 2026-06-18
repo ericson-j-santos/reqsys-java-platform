@@ -97,18 +97,7 @@ Idempotency-Key: <chave-unica-por-operacao>
 
 ## Gates bloqueantes
 
-Em `prod`, a aplicação bloqueia startup se detectar:
-
-- autenticação desligada;
-- idempotência desligada;
-- JWT sem issuer;
-- JWT sem audience;
-- CORS com `*`;
-- cofre sem token;
-- SQL Server com `trustServerCertificate=true`;
-- usuário SQL `sa`;
-- senha default ou vazia;
-- integração Redmine sem API key.
+Em `prod`, a aplicação bloqueia startup se detectar autenticação desligada, idempotência desligada, JWT sem issuer/audience, CORS com `*`, cofre sem token, SQL Server com `trustServerCertificate=true`, usuário SQL `sa`, senha default/vazia ou Redmine sem API key.
 
 ## Fluxo Redmine governado
 
@@ -143,9 +132,8 @@ A branch somente deve sair de draft e ser mergeada quando:
 
 1. `ci` estiver verde;
 2. `security-scan` estiver verde;
-3. `build-test` estiver verde em `main` ou execução manual controlada;
-4. os relatórios de OWASP Dependency-Check, Trivy e CodeQL forem revisados;
-5. não houver secret, token, CPF, PII ou connection string em logs/artefatos.
+3. os relatórios de OWASP Dependency-Check, Trivy e CodeQL forem revisados;
+4. não houver secret, token, CPF, PII ou connection string em logs/artefatos.
 
 Enquanto qualquer item acima não estiver validado, o merge em `main` fica bloqueado por decisão técnica.
 
