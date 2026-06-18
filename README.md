@@ -137,6 +137,16 @@ POST /api/v1/backlog/publicar-redmine/{id}
 | `reqsys.outbox.falha.total` | Falhas de processamento do outbox. |
 | `reqsys.outbox.idempotente.total` | Mensagens ignoradas por já estarem concluídas no domínio. |
 
+## Decisão de release
+
+A branch somente deve sair de draft e ser mergeada quando:
+
+1. `ci` estiver verde;
+2. `security-scan` estiver verde;
+3. `build-test` estiver verde em `main` ou execução manual controlada;
+4. os relatórios de OWASP Dependency-Check, Trivy e CodeQL forem revisados;
+5. não houver secret, token, CPF, PII ou connection string em logs/artefatos.
+
 ## Observação
 
-Este pacote é uma base técnica candidata a homologação de produção. Antes do merge final, o CI deve validar build, testes e scans. O próximo incremento recomendado é tracing OpenTelemetry ponta a ponta e dashboards operacionais mínimos.
+Este pacote é uma base técnica candidata a homologação de produção. O próximo incremento recomendado é tracing OpenTelemetry ponta a ponta e dashboards operacionais mínimos.
