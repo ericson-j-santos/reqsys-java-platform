@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.0.3-security-tests-observability-ci] - 2026-06-17
+
+### Adicionado
+
+- Testes de `ProductionReadinessValidator` cobrindo auth desligada, idempotência desligada, JWT ausente, CORS wildcard, cofre sem token, TLS relaxado, usuário `sa` e senha default.
+- Testes de segurança do cofre validando falha fechada, token inválido e resposta sem segredo em claro.
+- Testes do `IdempotencyFilter` para `X-Correlation-Id`, `Idempotency-Key` e profile local sem idempotência persistente.
+- Testes do conversor JWT para authorities de scopes e roles.
+- Métricas Micrometer para idempotência e outbox.
+- `ReqSysMetrics` com contadores para replay, conflito, conclusão, erro, outbox processado, falha e idempotência de worker.
+- CodeQL Java no workflow `security-scan`.
+- OWASP Dependency-Check no workflow `ci` e `security-scan`.
+
+### Alterado
+
+- `reqsys.idempotency.enabled=false` passa a ser bloqueado em produção.
+- Profile `local` desabilita idempotência persistente para não exigir tabelas de governança no H2 em memória.
+- Workflow `ci` remove `aquasecurity/trivy-action@0.24.0`, que falhava por tag inexistente, e instala Trivy via repositório oficial.
+- Workflow `build-test` deixa de rodar em PR e fica restrito a `main`/manual para evitar gates duplicados e conflitantes.
+- Workflow `security-scan` substitui `dependency-review-action` por CodeQL + OWASP Dependency-Check.
+
+### Corrigido
+
+- Falha inicial do CI causada por action Trivy inválida.
+- Risco de testes unitários tentarem descoberta remota de issuer JWT.
+- Divergência documental sobre pendências já implementadas.
+
+### Pendências controladas
+
+- Validar execução real do novo CI após push da branch.
+- Adicionar tracing OpenTelemetry ponta a ponta.
+- Adicionar dashboard operacional mínimo para métricas de idempotência, outbox e DLQ.
+
 ## [1.0.2-outbox-idempotency] - 2026-06-17
 
 ### Adicionado
@@ -21,12 +54,6 @@
 - Publicação Redmine passa a ser enfileirada em `tb_outbox`.
 - Status do requisito passa para `PUBLICACAO_REDMINE_PENDENTE` até o worker concluir a publicação.
 - `docs/producao-gates.md` atualizado com regras de idempotência e outbox.
-
-### Pendências controladas
-
-- Testes automatizados específicos de JWT, CORS, cofre e production gates.
-- Métricas Micrometer para idempotência, outbox, retries e DLQ.
-- Tracing OpenTelemetry ponta a ponta.
 
 ## [1.0.1-prod-readiness-gates] - 2026-06-17
 
