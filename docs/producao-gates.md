@@ -28,6 +28,20 @@ A aplicação deve bloquear startup em `SPRING_PROFILES_ACTIVE=prod` quando qual
 | `Idempotency-Key` | `POST`, `PUT`, `PATCH`, `DELETE` | Deduplicação, replay seguro e proteção contra duplo envio. |
 | `X-Cofre-Token` | Rotas `/api/v1/cofre/**` | Proteção adicional para administração de segredos. |
 
+## CI/CD obrigatório
+
+Neste PR, os gates de CI executam sobre `apps/reqsys-enterprise-api` e dependências Maven via `-pl apps/reqsys-enterprise-api -am`, porque a fatia alterada é a API enterprise e suas bibliotecas base.
+
+O PR deve validar:
+
+- `mvn -B -pl apps/reqsys-enterprise-api -am clean verify`;
+- OWASP Dependency-Check nos módulos afetados;
+- SBOM CycloneDX nos módulos afetados;
+- Trivy filesystem scan;
+- Docker build;
+- Trivy image scan;
+- CodeQL Java com build manual dos módulos afetados.
+
 ## Decisão canônica de merge
 
 O PR deve permanecer como draft até todos os workflows do último commit ficarem verdes. Se qualquer gate falhar, a correção deve ocorrer no próprio PR antes de revisão final.
