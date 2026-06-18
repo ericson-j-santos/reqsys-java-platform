@@ -9,6 +9,7 @@ A aplicação deve bloquear startup em `SPRING_PROFILES_ACTIVE=prod` quando qual
 | Gate | Regra |
 |---|---|
 | Auth desligada | `reqsys.security.enabled=false` não é permitido em produção. |
+| Idempotência desligada | `reqsys.idempotency.enabled=false` não é permitido em produção. |
 | JWT sem issuer | `JWT_ISSUER_URI` deve estar configurado. |
 | JWT sem audience | `JWT_AUDIENCES` deve estar configurado. |
 | CORS aberto | `CORS_ALLOWED_ORIGINS=*` é proibido. |
@@ -73,10 +74,35 @@ Regras:
 - Após o limite, a mensagem vai para DLQ.
 - Reprocessamento idempotente ignora requisito já publicado.
 
+## Observabilidade mínima
+
+| Métrica | Uso operacional |
+|---|---|
+| `reqsys.idempotencia.replay.total` | Detectar volume de reenvios idempotentes. |
+| `reqsys.idempotencia.conflito.total` | Detectar mau uso de `Idempotency-Key`. |
+| `reqsys.idempotencia.concluida.total` | Confirmar comandos processados com persistência de resposta. |
+| `reqsys.idempotencia.erro.total` | Acompanhar falhas 5xx em comandos idempotentes. |
+| `reqsys.outbox.processada.total` | Acompanhar publicação externa concluída. |
+| `reqsys.outbox.falha.total` | Acompanhar falhas de worker/outbox. |
+| `reqsys.outbox.idempotente.total` | Acompanhar reprocessamentos sem efeito colateral. |
+
+## Testes obrigatórios
+
+A suíte deve conter testes para:
+
+- startup gate em produção;
+- auth desligada;
+- idempotência desligada;
+- JWT issuer/audience ausentes;
+- CORS wildcard;
+- cofre sem token e token inválido;
+- resposta do cofre sem segredo em claro;
+- headers `X-Correlation-Id` e `Idempotency-Key`;
+- outbox Redmine com sucesso e falha.
+
 ## Próximos gates recomendados
 
 1. Adicionar rate limit por usuário/client application.
-2. Adicionar testes de segurança para JWT, CORS, cofre e startup em produção.
-3. Adicionar CodeQL e OWASP Dependency-Check com baseline controlado.
-4. Adicionar métricas Micrometer para outbox, DLQ, retries e idempotência.
-5. Adicionar tracing OpenTelemetry para correlação entre API, worker e Redmine.
+2. Adicionar tracing OpenTelemetry para correlação entre API, worker e Redmine.
+3. Adicionar dashboard operacional mínimo para métricas de idempotência, outbox e DLQ.
+4. Adicionar baseline formal para vulnerabilidades aceitas, se o OWASP Dependency-Check apontar falsos positivos.
