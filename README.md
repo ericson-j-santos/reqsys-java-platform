@@ -1,6 +1,6 @@
 # ReqSys Java Enterprise Platform
 
-Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base corporativa com arquitetura hexagonal, governança, rastreabilidade, idempotência, outbox e gates de produção.
+Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base corporativa com arquitetura hexagonal, governança, rastreabilidade, idempotência, outbox, observabilidade e gates de produção.
 
 ## Aplicações incluídas
 
@@ -30,9 +30,11 @@ Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base c
 - SQL Server
 - Flyway
 - Spring Web / Validation / Security / OAuth2 Resource Server / Data JPA / JDBC / Retry / Actuator
+- Micrometer / Actuator metrics
 - JUnit 5 / Mockito-ready / Testcontainers-ready
 - Docker multi-stage
 - GitHub Actions
+- CodeQL / OWASP Dependency-Check / Trivy
 
 ## Padrões aplicados
 
@@ -45,9 +47,10 @@ Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base c
 - Outbox + DLQ lógica
 - Redmine assíncrono via worker de outbox
 - Retry com backoff
+- Métricas para idempotência, outbox, retry e falha
 - Mascaramento de PII/LGPD
 - OpenAPI e ADRs
-- Testes-base
+- Testes de segurança para production gates, cofre, JWT authorities e headers obrigatórios
 - Gates de produção documentados em `docs/producao-gates.md`
 
 ## Execução local
@@ -75,6 +78,7 @@ JWT_ISSUER_URI='https://login.microsoftonline.com/<tenant-id>/v2.0'
 JWT_AUDIENCES='<api-client-id-ou-app-id-uri>'
 CORS_ALLOWED_ORIGINS='https://app.reqsys.exemplo.com'
 REQSYS_COFRE_TOKEN='<segredo-forte>'
+REQSYS_IDEMPOTENCY_ENABLED=true
 REDMINE_BASE_URL='https://redmine.exemplo.local'
 REDMINE_API_KEY='<segredo>'
 REDMINE_PROJECT_ID='reqsys'
@@ -96,6 +100,7 @@ Idempotency-Key: <chave-unica-por-operacao>
 Em `prod`, a aplicação bloqueia startup se detectar:
 
 - autenticação desligada;
+- idempotência desligada;
 - JWT sem issuer;
 - JWT sem audience;
 - CORS com `*`;
@@ -120,6 +125,18 @@ POST /api/v1/backlog/publicar-redmine/{id}
   -> em falha: retry ou DLQ
 ```
 
+## Métricas expostas
+
+| Métrica | Finalidade |
+|---|---|
+| `reqsys.idempotencia.replay.total` | Quantidade de respostas reaproveitadas por idempotência. |
+| `reqsys.idempotencia.conflito.total` | Reuso de chave com payload divergente. |
+| `reqsys.idempotencia.concluida.total` | Comandos concluídos com registro de resposta. |
+| `reqsys.idempotencia.erro.total` | Comandos idempotentes com falha 5xx. |
+| `reqsys.outbox.processada.total` | Mensagens de outbox concluídas. |
+| `reqsys.outbox.falha.total` | Falhas de processamento do outbox. |
+| `reqsys.outbox.idempotente.total` | Mensagens ignoradas por já estarem concluídas no domínio. |
+
 ## Observação
 
-Este pacote é uma base técnica candidata a homologação de produção. Antes do merge final, o CI deve validar build, testes e scans. Ainda é recomendado adicionar testes específicos para JWT, CORS, cofre e startup em produção, além de métricas Micrometer e tracing OpenTelemetry.
+Este pacote é uma base técnica candidata a homologação de produção. Antes do merge final, o CI deve validar build, testes e scans. O próximo incremento recomendado é tracing OpenTelemetry ponta a ponta e dashboards operacionais mínimos.
