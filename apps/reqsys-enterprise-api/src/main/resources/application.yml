@@ -41,6 +41,8 @@ reqsys:
     enabled: ${REQSYS_AUTH_ENABLED:true}
     jwt:
       audiences: ${JWT_AUDIENCES:}
+  idempotency:
+    enabled: ${REQSYS_IDEMPOTENCY_ENABLED:true}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   cofre:
