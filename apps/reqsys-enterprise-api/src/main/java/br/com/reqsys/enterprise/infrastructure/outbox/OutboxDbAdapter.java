@@ -80,6 +80,7 @@ public class OutboxDbAdapter implements OutboxPort {
 
     @Override
     public void marcarErro(UUID id, String erro, int maxTentativas) {
+        String erroNormalizado = normalizarErro(erro);
         jdbcTemplate.update("""
                 UPDATE dbo.tb_outbox
                    SET tentativas = tentativas + 1,
@@ -87,20 +88,20 @@ public class OutboxDbAdapter implements OutboxPort {
                        status = CASE WHEN tentativas + 1 >= ? THEN 'DLQ' ELSE 'ERRO_REPROCESSAVEL' END,
                        atualizado_em_utc = SYSUTCDATETIME()
                  WHERE id = ?
-                """, normalizarErro(erro), maxTentativas, id);
+                """, erroNormalizado, maxTentativas, id);
 
         jdbcTemplate.update("""
                 INSERT INTO dbo.tb_dead_letter (id, correlation_id, origem, payload_json, erro)
-                SELECT NEWID(), correlation_id, tipo_mensagem, payload_json, ?
-                  FROM dbo.tb_outbox
-                 WHERE id = ?
-                   AND status = 'DLQ'
+                SELECT NEWID(), ob.correlation_id, ob.tipo_mensagem, ob.payload_json, ?
+                  FROM dbo.tb_outbox ob
+                 WHERE ob.id = ?
+                   AND ob.status = 'DLQ'
                    AND NOT EXISTS (
                        SELECT 1 FROM dbo.tb_dead_letter dl
-                        WHERE dl.origem = dbo.tb_outbox.tipo_mensagem
-                          AND dl.payload_json = dbo.tb_outbox.payload_json
+                        WHERE dl.origem = ob.tipo_mensagem
+                          AND dl.payload_json = ob.payload_json
                    )
-                """, normalizarErro(erro), id);
+                """, erroNormalizado, id);
     }
 
     private String normalizarErro(String erro) {
