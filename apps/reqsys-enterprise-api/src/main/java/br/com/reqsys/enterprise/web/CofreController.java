@@ -1,5 +1,6 @@
 package br.com.reqsys.enterprise.web;
 
+import br.com.reqsys.common.idempotency.HashConteudo;
 import br.com.reqsys.enterprise.domain.CofreSegredo;
 import br.com.reqsys.enterprise.ports.CofrePort;
 import br.com.reqsys.enterprise.web.dto.CofreSalvarRequest;
@@ -8,11 +9,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 
 /**
  * Cofre de segredos centralizado do ReqSys.
  * Protegido por X-Cofre-Token (configurar REQSYS_COFRE_TOKEN no ambiente).
+ * Nunca retorna o valor do segredo em claro.
  */
 @RestController
 @RequestMapping("/api/v1/cofre")
@@ -57,13 +61,24 @@ public class CofreController {
     }
 
     private void validarToken(String token) {
-        if (cofreToken == null || cofreToken.isBlank()) return; // sem proteção configurada (dev)
-        if (!cofreToken.equals(token)) {
-            throw new SecurityException("X-Cofre-Token inválido ou ausente.");
+        if (cofreToken == null || cofreToken.isBlank()) {
+            throw new SecurityException("REQSYS_COFRE_TOKEN nao configurado. Cofre bloqueado.");
+        }
+        byte[] esperado = cofreToken.getBytes(StandardCharsets.UTF_8);
+        byte[] recebido = token == null ? new byte[0] : token.getBytes(StandardCharsets.UTF_8);
+        if (!MessageDigest.isEqual(esperado, recebido)) {
+            throw new SecurityException("X-Cofre-Token invalido ou ausente.");
         }
     }
 
     private CofreSegredoResponse toResponse(CofreSegredo s) {
-        return new CofreSegredoResponse(s.chave(), s.valor(), s.sistema(), s.descricao());
+        String valor = s.valor() == null ? "" : s.valor();
+        String fingerprint = HashConteudo.sha256(s.chave() + ":" + s.sistema() + ":" + valor).substring(0, 16);
+        return new CofreSegredoResponse(
+                s.chave(),
+                !valor.isBlank(),
+                fingerprint,
+                s.sistema(),
+                s.descricao());
     }
 }
