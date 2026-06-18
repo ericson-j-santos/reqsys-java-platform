@@ -45,6 +45,11 @@ reqsys:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   cofre:
     token: ${REQSYS_COFRE_TOKEN:}
+  outbox:
+    redmine:
+      intervalo-ms: ${REQSYS_OUTBOX_REDMINE_INTERVALO_MS:30000}
+      limite-lote: ${REQSYS_OUTBOX_REDMINE_LIMITE_LOTE:10}
+      max-tentativas: ${REQSYS_OUTBOX_REDMINE_MAX_TENTATIVAS:5}
 
 logging:
   level:
