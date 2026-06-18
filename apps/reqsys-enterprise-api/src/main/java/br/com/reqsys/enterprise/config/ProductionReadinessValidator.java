@@ -26,6 +26,7 @@ public class ProductionReadinessValidator implements ApplicationRunner {
         List<String> bloqueios = new ArrayList<>();
 
         boolean authEnabled = Boolean.parseBoolean(prop("reqsys.security.enabled", "true"));
+        boolean idempotencyEnabled = Boolean.parseBoolean(prop("reqsys.idempotency.enabled", "true"));
         String issuerUri = prop("spring.security.oauth2.resourceserver.jwt.issuer-uri", "");
         String audiences = prop("reqsys.security.jwt.audiences", "");
         String corsOrigins = prop("reqsys.cors.allowed-origins", "");
@@ -37,6 +38,9 @@ public class ProductionReadinessValidator implements ApplicationRunner {
 
         if (!authEnabled) {
             bloqueios.add("Auth desligada em profile prod.");
+        }
+        if (!idempotencyEnabled) {
+            bloqueios.add("Idempotencia desligada em profile prod.");
         }
         if (issuerUri.isBlank()) {
             bloqueios.add("JWT issuer-uri ausente em profile prod.");
