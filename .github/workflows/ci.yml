@@ -29,7 +29,22 @@ jobs:
           cache: maven
 
       - name: Maven verify módulos afetados
-        run: mvn -B -pl apps/reqsys-enterprise-api -am clean verify
+        shell: bash
+        run: |
+          mkdir -p target/ci-logs
+          set -o pipefail
+          mvn -B -pl apps/reqsys-enterprise-api -am clean verify 2>&1 | tee target/ci-logs/maven-verify.log
+
+      - name: Upload Maven logs e relatórios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-verify-diagnostics
+          path: |
+            target/ci-logs/*.log
+            **/target/surefire-reports/*
+            **/target/failsafe-reports/*
+          if-no-files-found: warn
 
       - name: OWASP Dependency-Check módulos afetados
         run: mvn -B -pl apps/reqsys-enterprise-api -am org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON
