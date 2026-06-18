@@ -31,7 +31,7 @@
 
 ### Pendências controladas
 
-- Validar execução real dos workflows no último commit da branch.
+- Validar execução real dos workflows no último commit da branch antes de sair de draft.
 - Adicionar tracing OpenTelemetry ponta a ponta.
 - Adicionar dashboard operacional mínimo para métricas de idempotência, outbox e DLQ.
 
