@@ -30,24 +30,11 @@ A aplicação deve bloquear startup em `SPRING_PROFILES_ACTIVE=prod` quando qual
 
 ## Cofre de segredos
 
-O cofre não deve retornar segredo em claro. As respostas devem expor apenas:
-
-- chave;
-- sistema;
-- descrição;
-- indicador de valor cadastrado;
-- fingerprint não reversível.
+O cofre não deve retornar segredo em claro. As respostas devem expor apenas chave, sistema, descrição, indicador de valor cadastrado e fingerprint não reversível.
 
 ## Idempotência
 
-Comandos HTTP devem registrar `Idempotency-Key` em `dbo.tb_idempotencia` com:
-
-- hash canônico de método, URI, query string e corpo;
-- status de processamento;
-- resposta JSON;
-- HTTP status original.
-
-Regras:
+Comandos HTTP devem registrar `Idempotency-Key` em `dbo.tb_idempotencia` com hash canônico de método, URI, query string e corpo, status de processamento, resposta JSON e HTTP status original.
 
 | Cenário | Resultado |
 |---|---|
@@ -59,8 +46,6 @@ Regras:
 ## Outbox Redmine
 
 Publicações externas no Redmine não devem ocorrer dentro da transação principal do caso de uso.
-
-Fluxo canônico:
 
 ```text
 API -> transação local -> tb_outbox(PENDENTE) -> worker -> Redmine -> status local -> auditoria
@@ -88,17 +73,7 @@ Regras:
 
 ## Testes obrigatórios
 
-A suíte deve conter testes para:
-
-- startup gate em produção;
-- auth desligada;
-- idempotência desligada;
-- JWT issuer/audience ausentes;
-- CORS wildcard;
-- cofre sem token e token inválido;
-- resposta do cofre sem segredo em claro;
-- headers `X-Correlation-Id` e `Idempotency-Key`;
-- outbox Redmine com sucesso e falha.
+A suíte deve conter testes para startup gate em produção, auth desligada, idempotência desligada, JWT issuer/audience ausentes, CORS wildcard, cofre sem token, token inválido, resposta do cofre sem segredo em claro, headers obrigatórios e outbox Redmine com sucesso/falha.
 
 ## CI/CD obrigatório
 
@@ -112,9 +87,9 @@ O PR deve validar:
 - Trivy image scan;
 - CodeQL Java.
 
-## Pendência única antes de merge
+## Decisão canônica de merge
 
-A única pendência para tirar o PR de draft é a validação real dos workflows no GitHub Actions após o último commit da branch. Se algum gate falhar, a correção deve ser feita no próprio PR antes de merge.
+O PR deve permanecer como draft até todos os workflows do último commit ficarem verdes. Se qualquer gate falhar, a correção deve ocorrer no próprio PR antes de revisão final.
 
 ## Próximos incrementos recomendados
 
