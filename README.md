@@ -2,6 +2,22 @@
 
 Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base corporativa com arquitetura hexagonal, governança, rastreabilidade, idempotência, outbox, observabilidade e gates de produção.
 
+## Padrões aplicados
+
+- Arquitetura hexagonal / Ports and Adapters.
+- Use cases explícitos.
+- DTOs separados do domínio.
+- `X-Correlation-Id` obrigatório.
+- `Idempotency-Key` com persistência, hash e replay de resposta.
+- Auditoria persistente.
+- Outbox + DLQ lógica.
+- Redmine assíncrono via worker de outbox.
+- OAuth2 Resource Server com validação JWT.
+- CORS restrito por ambiente.
+- Cofre fechado por padrão e sem exposição de segredo em claro.
+- Métricas Micrometer para idempotência e outbox.
+- CI/CD com Maven verify, OWASP Dependency-Check, SBOM, Trivy e CodeQL.
+
 ## Decisão de release
 
 A branch somente deve sair de draft e ser mergeada quando:
@@ -67,3 +83,15 @@ POST /api/v1/backlog/publicar-redmine/{id}
   -> registra auditoria
   -> em falha: retry ou DLQ
 ```
+
+## Métricas principais
+
+| Métrica | Finalidade |
+|---|---|
+| `reqsys.idempotencia.replay.total` | Reenvios idempotentes. |
+| `reqsys.idempotencia.conflito.total` | Uso divergente de `Idempotency-Key`. |
+| `reqsys.idempotencia.concluida.total` | Comandos concluídos. |
+| `reqsys.idempotencia.erro.total` | Falhas 5xx em comandos idempotentes. |
+| `reqsys.outbox.processada.total` | Mensagens concluídas. |
+| `reqsys.outbox.falha.total` | Falhas de outbox. |
+| `reqsys.outbox.idempotente.total` | Reprocessamentos sem efeito colateral. |
