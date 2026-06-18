@@ -1,10 +1,12 @@
 package br.com.reqsys.enterprise.web;
 
 import br.com.reqsys.common.idempotency.HashConteudo;
+import br.com.reqsys.enterprise.infrastructure.metrics.ReqSysMetrics;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,7 +17,6 @@ import org.springframework.web.util.ContentCachingResponseWrapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,9 +26,15 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static final Set<String> METODOS_COMANDO = Set.of("POST", "PUT", "PATCH", "DELETE");
 
     private final JdbcTemplate jdbcTemplate;
+    private final ReqSysMetrics metrics;
+    private final boolean idempotencyEnabled;
 
-    public IdempotencyFilter(JdbcTemplate jdbcTemplate) {
+    public IdempotencyFilter(JdbcTemplate jdbcTemplate,
+                             ReqSysMetrics metrics,
+                             @Value("${reqsys.idempotency.enabled:true}") boolean idempotencyEnabled) {
         this.jdbcTemplate = jdbcTemplate;
+        this.metrics = metrics;
+        this.idempotencyEnabled = idempotencyEnabled;
     }
 
     @Override
@@ -46,7 +53,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (!METODOS_COMANDO.contains(request.getMethod())) {
+        if (!METODOS_COMANDO.contains(request.getMethod()) || !idempotencyEnabled) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -63,11 +70,13 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         IdempotencyRegistro registro = buscarRegistro(idempotencyKey);
         if (registro != null) {
             if (!registro.hashConteudo().equals(hashConteudo)) {
+                metrics.idempotenciaConflito();
                 erro(response, HttpServletResponse.SC_CONFLICT, "IDEMPOTENCY_KEY_CONFLITANTE",
                         "Idempotency-Key ja utilizada com payload diferente.");
                 return;
             }
             if ("CONCLUIDO".equalsIgnoreCase(registro.status()) && registro.respostaJson() != null) {
+                metrics.idempotenciaReplay();
                 response.setStatus(registro.httpStatus());
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.getWriter().write(registro.respostaJson());
@@ -75,6 +84,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             }
         } else {
             reservarRegistro(idempotencyKey, hashConteudo);
+            metrics.idempotenciaReservada();
         }
 
         ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
@@ -83,8 +93,10 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             String corpoResposta = new String(wrappedResponse.getContentAsByteArray(), StandardCharsets.UTF_8);
             if (wrappedResponse.getStatus() < 500) {
                 concluirRegistro(idempotencyKey, wrappedResponse.getStatus(), corpoResposta);
+                metrics.idempotenciaConcluida();
             } else {
                 marcarErro(idempotencyKey, wrappedResponse.getStatus(), corpoResposta);
+                metrics.idempotenciaErro();
             }
         } finally {
             wrappedResponse.copyBodyToResponse();
@@ -109,7 +121,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                     rs.getString("status"),
                     rs.getString("resposta_json"),
                     rs.getInt("http_status")), key);
-            return registros.isEmpty() ? null : registros.getFirst();
+            return registros.isEmpty() ? null : registros.get(0);
         } catch (DataAccessException ex) {
             throw new IllegalStateException("Falha ao consultar idempotencia. Verifique migration tb_idempotencia.", ex);
         }
