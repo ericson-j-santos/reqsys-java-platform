@@ -28,14 +28,14 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Maven verify
-        run: mvn -B clean verify
+      - name: Maven verify módulos afetados
+        run: mvn -B -pl apps/reqsys-enterprise-api -am clean verify
 
-      - name: OWASP Dependency-Check
-        run: mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON
+      - name: OWASP Dependency-Check módulos afetados
+        run: mvn -B -pl apps/reqsys-enterprise-api -am org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON
 
-      - name: Gerar SBOM CycloneDX
-        run: mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.8.0:makeAggregateBom
+      - name: Gerar SBOM CycloneDX módulos afetados
+        run: mvn -B -pl apps/reqsys-enterprise-api -am org.cyclonedx:cyclonedx-maven-plugin:2.8.0:makeAggregateBom
 
       - name: Instalar Trivy
         run: |
@@ -59,7 +59,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sbom-cyclonedx
-          path: target/bom.*
+          path: |
+            target/bom.*
+            **/target/bom.*
           if-no-files-found: warn
 
       - name: Upload Dependency-Check report
@@ -67,5 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: target/dependency-check-report.*
+          path: |
+            target/dependency-check-report.*
+            **/target/dependency-check-report.*
           if-no-files-found: warn
