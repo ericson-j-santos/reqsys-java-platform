@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: "jdbc:h2:file:./data/reqsys-local;INIT=CREATE SCHEMA IF NOT EXISTS DBO;DB_CLOSE_DELAY=-1"
+    url: jdbc:h2:mem:reqsys;MODE=MSSQLServer;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
-    password: password
+    password:
     driver-class-name: org.h2.Driver
   h2:
     console:
@@ -10,15 +10,26 @@ spring:
       path: /h2-console
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create-drop
     database-platform: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false
 
 reqsys:
+  security:
+    enabled: false
+    jwt:
+      audiences:
+  cors:
+    allowed-origins: http://localhost:4200,http://localhost:5173
   cofre:
-    token:
+    token: dev-local-token
     seed-local: true
+
+redmine:
+  base-url: http://localhost:3000
+  api-key: dev-local-redmine-token
+  project-id: reqsys
 
 logging:
   level:
