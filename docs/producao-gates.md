@@ -91,6 +91,18 @@ O PR deve validar:
 
 O PR deve permanecer como draft até todos os workflows do último commit ficarem verdes. Se qualquer gate falhar, a correção deve ocorrer no próprio PR antes de revisão final.
 
+Checklist de saída de draft:
+
+```text
+[ ] ci verde
+[ ] security-scan verde
+[ ] relatórios de segurança revisados
+[ ] sem secrets/PII em logs ou artefatos
+[ ] sem CORS wildcard
+[ ] auth/JWT validados
+[ ] cofre fechado
+```
+
 ## Próximos incrementos recomendados
 
 1. Adicionar rate limit por usuário/client application.
