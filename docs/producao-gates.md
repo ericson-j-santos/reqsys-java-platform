@@ -112,7 +112,11 @@ O PR deve validar:
 - Trivy image scan;
 - CodeQL Java.
 
-## Próximos gates recomendados
+## Pendência única antes de merge
+
+A única pendência para tirar o PR de draft é a validação real dos workflows no GitHub Actions após o último commit da branch. Se algum gate falhar, a correção deve ser feita no próprio PR antes de merge.
+
+## Próximos incrementos recomendados
 
 1. Adicionar rate limit por usuário/client application.
 2. Adicionar tracing OpenTelemetry para correlação entre API, worker e Redmine.
