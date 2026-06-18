@@ -1,6 +1,6 @@
 # ReqSys Java Enterprise Platform
 
-Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base corporativa com arquitetura hexagonal, governança, rastreabilidade e gates de produção.
+Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base corporativa com arquitetura hexagonal, governança, rastreabilidade, idempotência, outbox e gates de produção.
 
 ## Aplicações incluídas
 
@@ -29,7 +29,7 @@ Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base c
 - Maven multi-module
 - SQL Server
 - Flyway
-- Spring Web / Validation / Security / OAuth2 Resource Server / Data JPA / Retry / Actuator
+- Spring Web / Validation / Security / OAuth2 Resource Server / Data JPA / JDBC / Retry / Actuator
 - JUnit 5 / Mockito-ready / Testcontainers-ready
 - Docker multi-stage
 - GitHub Actions
@@ -40,9 +40,10 @@ Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base c
 - Use cases explícitos
 - DTOs separados do domínio
 - `X-Correlation-Id`
-- `Idempotency-Key`
+- `Idempotency-Key` com persistência, hash e replay de resposta
 - Auditoria persistente
 - Outbox + DLQ lógica
+- Redmine assíncrono via worker de outbox
 - Retry com backoff
 - Mascaramento de PII/LGPD
 - OpenAPI e ADRs
@@ -77,6 +78,9 @@ REQSYS_COFRE_TOKEN='<segredo-forte>'
 REDMINE_BASE_URL='https://redmine.exemplo.local'
 REDMINE_API_KEY='<segredo>'
 REDMINE_PROJECT_ID='reqsys'
+REQSYS_OUTBOX_REDMINE_INTERVALO_MS=30000
+REQSYS_OUTBOX_REDMINE_LIMITE_LOTE=10
+REQSYS_OUTBOX_REDMINE_MAX_TENTATIVAS=5
 ```
 
 ## Convenção HTTP
@@ -101,6 +105,21 @@ Em `prod`, a aplicação bloqueia startup se detectar:
 - senha default ou vazia;
 - integração Redmine sem API key.
 
+## Fluxo Redmine governado
+
+```text
+POST /api/v1/backlog/publicar-redmine/{id}
+  -> valida requisito
+  -> status PUBLICACAO_REDMINE_PENDENTE
+  -> grava tb_outbox
+  -> commit local
+  -> RedmineOutboxWorker
+  -> cria issue Redmine
+  -> atualiza status PUBLICADO_REDMINE
+  -> registra auditoria
+  -> em falha: retry ou DLQ
+```
+
 ## Observação
 
-Este pacote é uma base técnica pronta para evolução controlada. Antes de produção real, ainda é recomendado fechar idempotência persistente com cache de resposta, mover integrações externas críticas para outbox worker e adicionar testes automatizados específicos de segurança.
+Este pacote é uma base técnica candidata a homologação de produção. Antes do merge final, o CI deve validar build, testes e scans. Ainda é recomendado adicionar testes específicos para JWT, CORS, cofre e startup em produção, além de métricas Micrometer e tracing OpenTelemetry.
