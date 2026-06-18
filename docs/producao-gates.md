@@ -100,6 +100,18 @@ A suíte deve conter testes para:
 - headers `X-Correlation-Id` e `Idempotency-Key`;
 - outbox Redmine com sucesso e falha.
 
+## CI/CD obrigatório
+
+O PR deve validar:
+
+- `mvn clean verify`;
+- OWASP Dependency-Check;
+- SBOM CycloneDX;
+- Trivy filesystem scan;
+- Docker build;
+- Trivy image scan;
+- CodeQL Java.
+
 ## Próximos gates recomendados
 
 1. Adicionar rate limit por usuário/client application.
