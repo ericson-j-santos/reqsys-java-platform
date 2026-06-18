@@ -31,9 +31,9 @@ jobs:
       - name: Maven verify módulos afetados
         shell: bash
         run: |
-          mkdir -p .ci-logs
+          mkdir -p ci-logs
           set -o pipefail
-          mvn -B -pl apps/reqsys-enterprise-api -am clean verify 2>&1 | tee .ci-logs/maven-verify.log
+          mvn -B -pl apps/reqsys-enterprise-api -am clean verify 2>&1 | tee ci-logs/maven-verify.log
 
       - name: Upload Maven logs e relatórios de teste
         if: always()
@@ -41,7 +41,7 @@ jobs:
         with:
           name: maven-verify-diagnostics
           path: |
-            .ci-logs/*.log
+            ci-logs/*.log
             **/target/surefire-reports/*
             **/target/failsafe-reports/*
           if-no-files-found: warn
