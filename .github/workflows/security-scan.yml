@@ -30,7 +30,7 @@ jobs:
           languages: java
           build-mode: manual
       - name: Build for CodeQL
-        run: mvn -B -DskipTests package
+        run: mvn -B -pl apps/reqsys-enterprise-api -am -DskipTests package
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
@@ -45,12 +45,14 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Dependency-Check Maven
-        run: mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON
+      - name: Dependency-Check Maven módulos afetados
+        run: mvn -B -pl apps/reqsys-enterprise-api -am org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON
       - name: Upload Dependency-Check report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: target/dependency-check-report.*
+          path: |
+            target/dependency-check-report.*
+            **/target/dependency-check-report.*
           if-no-files-found: warn
