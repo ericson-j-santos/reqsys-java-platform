@@ -15,7 +15,7 @@ jobs:
   build-test-scan:
     name: Build, testes e security gates
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     steps:
       - name: Checkout
@@ -31,32 +31,41 @@ jobs:
       - name: Maven verify
         run: mvn -B clean verify
 
+      - name: OWASP Dependency-Check
+        run: mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON
+
       - name: Gerar SBOM CycloneDX
         run: mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.8.0:makeAggregateBom
 
+      - name: Instalar Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy.gpg
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.24.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          severity: CRITICAL,HIGH
-          exit-code: '1'
-          ignore-unfixed: true
+        run: trivy fs --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 .
 
       - name: Build Docker image
         run: docker build -t reqsys-enterprise-api:${{ github.sha }} .
 
       - name: Trivy image scan
-        uses: aquasecurity/trivy-action@0.24.0
-        with:
-          image-ref: reqsys-enterprise-api:${{ github.sha }}
-          severity: CRITICAL,HIGH
-          exit-code: '1'
-          ignore-unfixed: true
+        run: trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 1 reqsys-enterprise-api:${{ github.sha }}
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom-cyclonedx
           path: target/bom.*
+          if-no-files-found: warn
+
+      - name: Upload Dependency-Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.*
           if-no-files-found: warn
