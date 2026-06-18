@@ -28,65 +28,6 @@ A aplicação deve bloquear startup em `SPRING_PROFILES_ACTIVE=prod` quando qual
 | `Idempotency-Key` | `POST`, `PUT`, `PATCH`, `DELETE` | Deduplicação, replay seguro e proteção contra duplo envio. |
 | `X-Cofre-Token` | Rotas `/api/v1/cofre/**` | Proteção adicional para administração de segredos. |
 
-## Cofre de segredos
-
-O cofre não deve retornar segredo em claro. As respostas devem expor apenas chave, sistema, descrição, indicador de valor cadastrado e fingerprint não reversível.
-
-## Idempotência
-
-Comandos HTTP devem registrar `Idempotency-Key` em `dbo.tb_idempotencia` com hash canônico de método, URI, query string e corpo, status de processamento, resposta JSON e HTTP status original.
-
-| Cenário | Resultado |
-|---|---|
-| Primeira chamada | Reserva chave como `PENDENTE`. |
-| Repetição com mesmo payload e concluída | Retorna resposta persistida. |
-| Repetição com payload diferente | Retorna `409 IDEMPOTENCY_KEY_CONFLITANTE`. |
-| Falha 5xx | Marca registro como `ERRO`. |
-
-## Outbox Redmine
-
-Publicações externas no Redmine não devem ocorrer dentro da transação principal do caso de uso.
-
-```text
-API -> transação local -> tb_outbox(PENDENTE) -> worker -> Redmine -> status local -> auditoria
-```
-
-Regras:
-
-- O caso de uso apenas enfileira a publicação.
-- O worker processa em lote configurável.
-- Falhas incrementam tentativas.
-- Após o limite, a mensagem vai para DLQ.
-- Reprocessamento idempotente ignora requisito já publicado.
-
-## Observabilidade mínima
-
-| Métrica | Uso operacional |
-|---|---|
-| `reqsys.idempotencia.replay.total` | Detectar volume de reenvios idempotentes. |
-| `reqsys.idempotencia.conflito.total` | Detectar mau uso de `Idempotency-Key`. |
-| `reqsys.idempotencia.concluida.total` | Confirmar comandos processados com persistência de resposta. |
-| `reqsys.idempotencia.erro.total` | Acompanhar falhas 5xx em comandos idempotentes. |
-| `reqsys.outbox.processada.total` | Acompanhar publicação externa concluída. |
-| `reqsys.outbox.falha.total` | Acompanhar falhas de worker/outbox. |
-| `reqsys.outbox.idempotente.total` | Acompanhar reprocessamentos sem efeito colateral. |
-
-## Testes obrigatórios
-
-A suíte deve conter testes para startup gate em produção, auth desligada, idempotência desligada, JWT issuer/audience ausentes, CORS wildcard, cofre sem token, token inválido, resposta do cofre sem segredo em claro, headers obrigatórios e outbox Redmine com sucesso/falha.
-
-## CI/CD obrigatório
-
-O PR deve validar:
-
-- `mvn clean verify`;
-- OWASP Dependency-Check;
-- SBOM CycloneDX;
-- Trivy filesystem scan;
-- Docker build;
-- Trivy image scan;
-- CodeQL Java.
-
 ## Decisão canônica de merge
 
 O PR deve permanecer como draft até todos os workflows do último commit ficarem verdes. Se qualquer gate falhar, a correção deve ocorrer no próprio PR antes de revisão final.
