@@ -12,6 +12,7 @@
 - `ReqSysMetrics` com contadores para replay, conflito, conclusão, erro, outbox processado, falha e idempotência de worker.
 - CodeQL Java no workflow `security-scan`.
 - OWASP Dependency-Check no workflow `ci` e `security-scan`.
+- Validação documental de CI/CD obrigatório em `docs/producao-gates.md`.
 
 ### Alterado
 
