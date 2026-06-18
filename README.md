@@ -33,6 +33,16 @@ Enquanto qualquer item acima não estiver validado, o merge em `main` fica bloqu
 
 Os gates completos estão documentados em `docs/producao-gates.md`.
 
+## CI/CD deste PR
+
+Os workflows deste PR validam `apps/reqsys-enterprise-api` e suas dependências Maven com:
+
+```bash
+mvn -B -pl apps/reqsys-enterprise-api -am clean verify
+```
+
+Esse escopo evita que módulos não alterados do monorepo bloqueiem a entrega desta fatia de produção. A validação completa de todos os módulos deve ser tratada em incremento próprio de saneamento global do monorepo.
+
 ## Execução local
 
 ```bash
@@ -41,10 +51,10 @@ docker compose -f docker/docker-compose.yml up -d
 SPRING_PROFILES_ACTIVE=local mvn -pl apps/reqsys-enterprise-api -am spring-boot:run
 ```
 
-Executar suíte:
+Executar suíte afetada:
 
 ```bash
-mvn clean verify
+mvn -B -pl apps/reqsys-enterprise-api -am clean verify
 ```
 
 ## Produção
