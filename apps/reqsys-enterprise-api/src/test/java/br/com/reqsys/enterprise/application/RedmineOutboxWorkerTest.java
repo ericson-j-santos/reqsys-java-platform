@@ -4,12 +4,14 @@ import br.com.reqsys.enterprise.domain.OutboxMensagem;
 import br.com.reqsys.enterprise.domain.Requisito;
 import br.com.reqsys.enterprise.domain.StatusRequisito;
 import br.com.reqsys.enterprise.domain.StatusSolicitacao;
+import br.com.reqsys.enterprise.infrastructure.metrics.ReqSysMetrics;
 import br.com.reqsys.enterprise.ports.AuditPort;
 import br.com.reqsys.enterprise.ports.OutboxPort;
 import br.com.reqsys.enterprise.ports.RedminePort;
 import br.com.reqsys.enterprise.ports.RequisitoPort;
 import br.com.reqsys.enterprise.ports.SolicitacaoPort;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +31,7 @@ class RedmineOutboxWorkerTest {
     private final RedminePort redminePort = mock(RedminePort.class);
     private final AuditPort auditPort = mock(AuditPort.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ReqSysMetrics metrics = new ReqSysMetrics(new SimpleMeterRegistry());
 
     private RedmineOutboxWorker worker;
 
@@ -41,6 +44,7 @@ class RedmineOutboxWorkerTest {
                 redminePort,
                 auditPort,
                 objectMapper,
+                metrics,
                 10,
                 5);
     }
