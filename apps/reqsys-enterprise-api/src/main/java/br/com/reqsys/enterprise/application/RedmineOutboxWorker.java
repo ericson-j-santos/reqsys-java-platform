@@ -4,6 +4,7 @@ import br.com.reqsys.enterprise.domain.OutboxMensagem;
 import br.com.reqsys.enterprise.domain.Requisito;
 import br.com.reqsys.enterprise.domain.StatusRequisito;
 import br.com.reqsys.enterprise.domain.StatusSolicitacao;
+import br.com.reqsys.enterprise.infrastructure.metrics.ReqSysMetrics;
 import br.com.reqsys.enterprise.ports.AuditPort;
 import br.com.reqsys.enterprise.ports.OutboxPort;
 import br.com.reqsys.enterprise.ports.RedminePort;
@@ -28,6 +29,7 @@ public class RedmineOutboxWorker {
     private final RedminePort redminePort;
     private final AuditPort auditPort;
     private final ObjectMapper objectMapper;
+    private final ReqSysMetrics metrics;
     private final int limiteLote;
     private final int maxTentativas;
 
@@ -37,6 +39,7 @@ public class RedmineOutboxWorker {
                                RedminePort redminePort,
                                AuditPort auditPort,
                                ObjectMapper objectMapper,
+                               ReqSysMetrics metrics,
                                @Value("${reqsys.outbox.redmine.limite-lote:10}") int limiteLote,
                                @Value("${reqsys.outbox.redmine.max-tentativas:5}") int maxTentativas) {
         this.outboxPort = outboxPort;
@@ -45,6 +48,7 @@ public class RedmineOutboxWorker {
         this.redminePort = redminePort;
         this.auditPort = auditPort;
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
         this.limiteLote = limiteLote;
         this.maxTentativas = maxTentativas;
     }
@@ -66,6 +70,7 @@ public class RedmineOutboxWorker {
 
             if (requisito.status() == StatusRequisito.PUBLICADO_REDMINE) {
                 outboxPort.marcarConcluida(mensagem.id());
+                metrics.outboxIdempotente(mensagem.tipoMensagem());
                 auditPort.registrar(payload.correlationId(), "OUTBOX_REDMINE_IDEMPOTENTE", requisito.id().toString());
                 return;
             }
@@ -80,10 +85,12 @@ public class RedmineOutboxWorker {
             requisitoPort.atualizar(publicado);
             solicitacaoPort.atualizarStatus(requisito.solicitacaoId(), StatusSolicitacao.CONCLUIDA);
             outboxPort.marcarConcluida(mensagem.id());
+            metrics.outboxProcessada(mensagem.tipoMensagem());
             auditPort.registrar(payload.correlationId(), "REQUISITO_PUBLICADO_REDMINE", "issue#" + issueId);
         } catch (Exception ex) {
             log.warn("Falha ao processar outbox Redmine id={} correlationId={} erro={}",
                     mensagem.id(), mensagem.correlationId(), ex.getMessage());
+            metrics.outboxFalha(mensagem.tipoMensagem());
             outboxPort.marcarErro(mensagem.id(), ex.getMessage(), maxTentativas);
         }
     }
