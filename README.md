@@ -147,6 +147,8 @@ A branch somente deve sair de draft e ser mergeada quando:
 4. os relatórios de OWASP Dependency-Check, Trivy e CodeQL forem revisados;
 5. não houver secret, token, CPF, PII ou connection string em logs/artefatos.
 
+Enquanto qualquer item acima não estiver validado, o merge em `main` fica bloqueado por decisão técnica.
+
 ## Observação
 
 Este pacote é uma base técnica candidata a homologação de produção. O próximo incremento recomendado é tracing OpenTelemetry ponta a ponta e dashboards operacionais mínimos.
