@@ -1,6 +1,6 @@
 # ReqSys Java Enterprise Platform
 
-Monorepo Java/Spring Boot 3 para consolidar as últimas aplicações recentes em uma base corporativa **padrão ouro**.
+Monorepo Java/Spring Boot 3 para consolidar as aplicações ReqSys em uma base corporativa com arquitetura hexagonal, governança, rastreabilidade e gates de produção.
 
 ## Aplicações incluídas
 
@@ -19,7 +19,7 @@ Monorepo Java/Spring Boot 3 para consolidar as últimas aplicações recentes em
 |---|---|
 | `reqsys-common` | Erros padronizados, exceções, LGPD, idempotência e utilitários |
 | `reqsys-observability` | `X-Correlation-Id`, MDC e autoconfiguração de observabilidade |
-| `reqsys-security` | Headers de segurança e configuração base Spring Security |
+| `reqsys-security` | Headers de segurança, CORS restrito, OAuth2 Resource Server e validação JWT |
 | `reqsys-microsoft-graph` | Ports/adapters para Graph, Planner e Teams |
 
 ## Stack
@@ -29,9 +29,9 @@ Monorepo Java/Spring Boot 3 para consolidar as últimas aplicações recentes em
 - Maven multi-module
 - SQL Server
 - Flyway
-- Spring Web / Validation / Security / Data JPA / Retry / Actuator
+- Spring Web / Validation / Security / OAuth2 Resource Server / Data JPA / Retry / Actuator
 - JUnit 5 / Mockito-ready / Testcontainers-ready
-- Docker Compose
+- Docker multi-stage
 - GitHub Actions
 
 ## Padrões aplicados
@@ -41,50 +41,66 @@ Monorepo Java/Spring Boot 3 para consolidar as últimas aplicações recentes em
 - DTOs separados do domínio
 - `X-Correlation-Id`
 - `Idempotency-Key`
-- Auditoria
+- Auditoria persistente
 - Outbox + DLQ lógica
 - Retry com backoff
 - Mascaramento de PII/LGPD
 - OpenAPI e ADRs
 - Testes-base
+- Gates de produção documentados em `docs/producao-gates.md`
 
 ## Execução local
 
 ```bash
 cd reqsys-java-platform
 docker compose -f docker/docker-compose.yml up -d
+SPRING_PROFILES_ACTIVE=local mvn -pl apps/reqsys-enterprise-api -am spring-boot:run
+```
+
+Executar suíte:
+
+```bash
 mvn clean verify
 ```
 
-Executar módulo específico:
+## Variáveis de ambiente para produção
 
 ```bash
-mvn -pl apps/forms-planner-orchestrator -am spring-boot:run
-```
-
-## Variáveis de ambiente
-
-```bash
-SPRING_PROFILES_ACTIVE=local
-SQLSERVER_HOST=localhost
-SQLSERVER_PORT=1433
-SQLSERVER_DATABASE=reqsys
-SQLSERVER_USERNAME=sa
-SQLSERVER_PASSWORD='YourStrong!Passw0rd'
-GRAPH_TENANT_ID=00000000-0000-0000-0000-000000000000
-GRAPH_CLIENT_ID=00000000-0000-0000-0000-000000000000
-GRAPH_CLIENT_SECRET=change-me
-REDMINE_BASE_URL=https://redmine.exemplo.local
-REDMINE_API_KEY=change-me
+SPRING_PROFILES_ACTIVE=prod
+SPRING_DATASOURCE_URL='jdbc:sqlserver://<host>:1433;databaseName=reqsys;encrypt=true;trustServerCertificate=false'
+SQLSERVER_USERNAME='<usuario_app_sem_privilégio_sa>'
+SQLSERVER_PASSWORD='<segredo>'
+JWT_ISSUER_URI='https://login.microsoftonline.com/<tenant-id>/v2.0'
+JWT_AUDIENCES='<api-client-id-ou-app-id-uri>'
+CORS_ALLOWED_ORIGINS='https://app.reqsys.exemplo.com'
+REQSYS_COFRE_TOKEN='<segredo-forte>'
+REDMINE_BASE_URL='https://redmine.exemplo.local'
+REDMINE_API_KEY='<segredo>'
+REDMINE_PROJECT_ID='reqsys'
 ```
 
 ## Convenção HTTP
 
 ```http
+Authorization: Bearer <jwt>
 X-Correlation-Id: <uuid-ou-id-rastreavel>
 Idempotency-Key: <chave-unica-por-operacao>
 ```
 
+## Gates bloqueantes
+
+Em `prod`, a aplicação bloqueia startup se detectar:
+
+- autenticação desligada;
+- JWT sem issuer;
+- JWT sem audience;
+- CORS com `*`;
+- cofre sem token;
+- SQL Server com `trustServerCertificate=true`;
+- usuário SQL `sa`;
+- senha default ou vazia;
+- integração Redmine sem API key.
+
 ## Observação
 
-Este pacote é uma base técnica pronta para evolução. Os adapters de Microsoft Graph, Redmine e SSRS estão isolados por ports e mocks, para posterior substituição pelos clients reais do ambiente corporativo.
+Este pacote é uma base técnica pronta para evolução controlada. Antes de produção real, ainda é recomendado fechar idempotência persistente com cache de resposta, mover integrações externas críticas para outbox worker e adicionar testes automatizados específicos de segurança.
