@@ -13,6 +13,7 @@
 - CodeQL Java no workflow `security-scan`.
 - OWASP Dependency-Check no workflow `ci` e `security-scan`.
 - Validação documental de CI/CD obrigatório em `docs/producao-gates.md`.
+- Diagnóstico Maven em artifact `maven-verify-diagnostics`, incluindo `ci-logs/maven-verify.log`, Surefire e Failsafe reports.
 
 ### Alterado
 
@@ -28,6 +29,7 @@
 - Falha inicial do CI causada por action Trivy inválida.
 - Risco de testes unitários tentarem descoberta remota de issuer JWT.
 - Divergência documental sobre pendências já implementadas.
+- Classpath de `reqsys-security` para compilar `SecurityHeadersConfig`, adicionando `jakarta.servlet-api` com escopo `provided`.
 
 ### Pendências controladas
 
@@ -78,23 +80,3 @@
 - `management.endpoints.web.exposure` reduzido para `health,info`.
 - `reqsys-security` passa a depender de `spring-boot-starter-oauth2-resource-server`.
 - Profile `local` isolado para desenvolvimento sem afetar produção.
-
-### Corrigido
-
-- Cofre não fica mais aberto quando `REQSYS_COFRE_TOKEN` está vazio.
-- Cofre não retorna mais valor de segredo em claro.
-- Auth `permitAll` deixou de ser o comportamento padrão de produção.
-
-## [1.0.0-java-padrao-ouro] - 2026-06-12
-
-### Adicionado
-
-- Monorepo Maven multi-module.
-- Seis aplicações Spring Boot.
-- Quatro bibliotecas compartilhadas.
-- Scripts SQL de governança: auditoria, idempotência, outbox e DLQ.
-- Docker Compose para SQL Server.
-- GitHub Actions para build, testes, security scan e release.
-- ADRs iniciais e documentação de arquitetura.
-- OpenAPI base.
-- Testes unitários de referência.
