@@ -42,6 +42,8 @@ O PR deve validar:
 - Trivy image scan;
 - CodeQL Java com build manual dos módulos afetados.
 
+Em caso de falha no Maven, o workflow publica o artifact `maven-verify-diagnostics` contendo `maven-verify.log`, Surefire e Failsafe reports.
+
 ## Decisão canônica de merge
 
 O PR deve permanecer como draft até todos os workflows do último commit ficarem verdes. Se qualquer gate falhar, a correção deve ocorrer no próprio PR antes de revisão final.
