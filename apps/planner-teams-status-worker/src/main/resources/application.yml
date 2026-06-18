@@ -16,6 +16,15 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+reqsys:
+  microsoft:
+    graph:
+      tenant-id: ${REQSYS_GRAPH_TENANT_ID:}
+      client-id: ${REQSYS_GRAPH_CLIENT_ID:}
+      client-secret: ${REQSYS_GRAPH_CLIENT_SECRET:}
+      graph-base-url: ${REQSYS_GRAPH_BASE_URL:https://graph.microsoft.com/v1.0}
+      scope: ${REQSYS_GRAPH_SCOPE:https://graph.microsoft.com/.default}
+
 management:
   endpoints:
     web:
