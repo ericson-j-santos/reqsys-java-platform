@@ -27,6 +27,8 @@ public class TeamsNotificationOutboxService {
             String destinatario,
             String mensagem
     ) {
+        validarIdempotencyKey(idempotencyKey);
+
         if (repository.existsByIdempotencyKey(idempotencyKey)) {
             return false;
         }
@@ -37,11 +39,18 @@ public class TeamsNotificationOutboxService {
                 taskId,
                 destinatario,
                 OutboxStatus.PENDING.name(),
-                gerarSha256(mensagem)
+                gerarSha256(mensagem),
+                mensagem
         );
 
         repository.save(evento);
         return true;
+    }
+
+    private void validarIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new IllegalArgumentException("Header Idempotency-Key é obrigatório para registrar outbox Teams.");
+        }
     }
 
     private String gerarSha256(String conteudo) {
