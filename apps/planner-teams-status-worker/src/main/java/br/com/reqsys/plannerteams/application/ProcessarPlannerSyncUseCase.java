@@ -12,9 +12,11 @@ import java.util.UUID;
 public class ProcessarPlannerSyncUseCase {
 
     private final TeamsPort teamsPort;
+    private final TeamsNotificationOutboxService outboxService;
 
-    public ProcessarPlannerSyncUseCase(TeamsPort teamsPort) {
+    public ProcessarPlannerSyncUseCase(TeamsPort teamsPort, TeamsNotificationOutboxService outboxService) {
         this.teamsPort = teamsPort;
+        this.outboxService = outboxService;
     }
 
     @Transactional
@@ -27,9 +29,17 @@ public class ProcessarPlannerSyncUseCase {
         }
 
         String mensagem = montarMensagem(correlationId, idempotencyKey, request);
-        teamsPort.enviarMensagemUsuario(request.destinatario(), mensagem);
+        boolean registrado = outboxService.registrarEventoSeNaoExistir(
+                correlationId,
+                idempotencyKey,
+                request.taskId(),
+                request.destinatario(),
+                mensagem
+        );
 
-        return new PlannerSyncResponse(UUID.randomUUID().toString(), "PROCESSADO", "NOTIFICACAO_TEAMS_DISPARADA");
+        return registrado
+                ? new PlannerSyncResponse(UUID.randomUUID().toString(), "PROCESSADO", "NOTIFICACAO_TEAMS_ENFILEIRADA")
+                : new PlannerSyncResponse(UUID.randomUUID().toString(), "PROCESSADO", "NOTIFICACAO_DUPLICADA_IGNORADA");
     }
 
     private void validarCorrelationId(String correlationId) {
