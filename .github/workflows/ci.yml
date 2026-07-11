@@ -47,7 +47,7 @@ jobs:
           if-no-files-found: warn
 
       - name: OWASP Dependency-Check módulos afetados
-        run: mvn -B -pl apps/reqsys-enterprise-api -am org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON
+        run: mvn -B -pl apps/reqsys-enterprise-api -am org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=9 -Dformat=HTML -Dformat=JSON -Dthreads=1
 
       - name: Gerar SBOM CycloneDX módulos afetados
         run: mvn -B -pl apps/reqsys-enterprise-api -am org.cyclonedx:cyclonedx-maven-plugin:2.8.0:makeAggregateBom
