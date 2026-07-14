@@ -2,7 +2,8 @@ package br.com.reqsys.enterprise.web.dto;
 
 public record CofreSegredoResponse(
         String chave,
-        String valor,
+        boolean valorCadastrado,
+        String fingerprintSha256,
         String sistema,
         String descricao
 ) {}

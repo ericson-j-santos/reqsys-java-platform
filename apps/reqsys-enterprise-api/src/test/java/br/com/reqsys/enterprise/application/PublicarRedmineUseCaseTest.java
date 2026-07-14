@@ -1,17 +1,21 @@
 package br.com.reqsys.enterprise.application;
 
 import br.com.reqsys.common.domain.ValidacaoNegocioException;
+import br.com.reqsys.enterprise.domain.OutboxMensagem;
 import br.com.reqsys.enterprise.domain.Requisito;
 import br.com.reqsys.enterprise.domain.StatusRequisito;
 import br.com.reqsys.enterprise.domain.StatusSolicitacao;
 import br.com.reqsys.enterprise.ports.AuditPort;
-import br.com.reqsys.enterprise.ports.RedminePort;
+import br.com.reqsys.enterprise.ports.OutboxPort;
 import br.com.reqsys.enterprise.ports.RequisitoPort;
 import br.com.reqsys.enterprise.ports.SolicitacaoPort;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
@@ -28,8 +32,9 @@ class PublicarRedmineUseCaseTest {
 
     @Mock RequisitoPort requisitoPort;
     @Mock SolicitacaoPort solicitacaoPort;
-    @Mock RedminePort redminePort;
+    @Mock OutboxPort outboxPort;
     @Mock AuditPort auditPort;
+    @Spy ObjectMapper objectMapper = new ObjectMapper();
     @InjectMocks PublicarRedmineUseCase useCase;
 
     private Requisito requisito(UUID id, UUID solId, StatusRequisito status, Integer issueId) {
@@ -39,22 +44,26 @@ class PublicarRedmineUseCaseTest {
     }
 
     @Test
-    void devePublicarRequisitoNoRedmineEAtualizarStatus() {
+    void deveEnfileirarPublicacaoRedmineEAtualizarStatusParaProcessando() {
         UUID reqId = UUID.randomUUID();
         UUID solId = UUID.randomUUID();
         Requisito r = requisito(reqId, solId, StatusRequisito.ESTRUTURADO, null);
-        Requisito publicado = requisito(reqId, solId, StatusRequisito.PUBLICADO_REDMINE, 42);
+        Requisito pendente = requisito(reqId, solId, StatusRequisito.PUBLICACAO_REDMINE_PENDENTE, null);
 
         when(requisitoPort.buscarPorId(reqId)).thenReturn(Optional.of(r));
-        when(redminePort.publicarRequisito(r)).thenReturn(42);
-        when(requisitoPort.atualizar(any())).thenReturn(publicado);
+        when(requisitoPort.atualizar(any())).thenReturn(pendente);
 
         Requisito resultado = useCase.executar("corr-1", reqId);
 
-        assertEquals(StatusRequisito.PUBLICADO_REDMINE, resultado.status());
-        assertEquals(42, resultado.redmineIssueId());
-        verify(solicitacaoPort).atualizarStatus(eq(solId), eq(StatusSolicitacao.CONCLUIDA));
-        verify(auditPort).registrar(eq("corr-1"), eq("REQUISITO_PUBLICADO_REDMINE"), contains("42"));
+        assertEquals(StatusRequisito.PUBLICACAO_REDMINE_PENDENTE, resultado.status());
+        verify(solicitacaoPort).atualizarStatus(eq(solId), eq(StatusSolicitacao.PROCESSANDO));
+        verify(auditPort).registrar(eq("corr-1"), eq("REQUISITO_REDMINE_ENFILEIRADO"), eq(reqId.toString()));
+
+        ArgumentCaptor<OutboxMensagem> captor = ArgumentCaptor.forClass(OutboxMensagem.class);
+        verify(outboxPort).enfileirar(captor.capture());
+        assertEquals(PublicarRedmineUseCase.OUTBOX_TIPO_PUBLICAR_REDMINE, captor.getValue().tipoMensagem());
+        assertEquals("redmine", captor.getValue().destino());
+        assertTrue(captor.getValue().payloadJson().contains(reqId.toString()));
     }
 
     @Test
@@ -66,7 +75,7 @@ class PublicarRedmineUseCaseTest {
                 () -> useCase.executar("corr-1", reqId));
 
         assertEquals("REQUISITO_NAO_ENCONTRADO", ex.getCodigo());
-        verifyNoInteractions(redminePort);
+        verifyNoInteractions(outboxPort);
     }
 
     @Test
@@ -79,18 +88,6 @@ class PublicarRedmineUseCaseTest {
                 () -> useCase.executar("corr-1", reqId));
 
         assertEquals("REQUISITO_JA_PUBLICADO", ex.getCodigo());
-        verifyNoInteractions(redminePort);
-    }
-
-    @Test
-    void deveNaoAtualizarSolicitacaoSeRedmineFalhar() {
-        UUID reqId = UUID.randomUUID();
-        UUID solId = UUID.randomUUID();
-        Requisito r = requisito(reqId, solId, StatusRequisito.ESTRUTURADO, null);
-        when(requisitoPort.buscarPorId(reqId)).thenReturn(Optional.of(r));
-        when(redminePort.publicarRequisito(r)).thenThrow(new RuntimeException("Redmine indisponível"));
-
-        assertThrows(RuntimeException.class, () -> useCase.executar("corr-1", reqId));
-        verify(solicitacaoPort, never()).atualizarStatus(any(), any());
+        verifyNoInteractions(outboxPort);
     }
 }

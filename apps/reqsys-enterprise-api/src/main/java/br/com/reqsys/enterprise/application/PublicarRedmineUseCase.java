@@ -1,13 +1,16 @@
 package br.com.reqsys.enterprise.application;
 
 import br.com.reqsys.common.domain.ValidacaoNegocioException;
+import br.com.reqsys.enterprise.domain.OutboxMensagem;
 import br.com.reqsys.enterprise.domain.Requisito;
 import br.com.reqsys.enterprise.domain.StatusRequisito;
+import br.com.reqsys.enterprise.domain.StatusSolicitacao;
 import br.com.reqsys.enterprise.ports.AuditPort;
-import br.com.reqsys.enterprise.ports.RedminePort;
+import br.com.reqsys.enterprise.ports.OutboxPort;
 import br.com.reqsys.enterprise.ports.RequisitoPort;
 import br.com.reqsys.enterprise.ports.SolicitacaoPort;
-import br.com.reqsys.enterprise.domain.StatusSolicitacao;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,19 +19,24 @@ import java.util.UUID;
 @Service
 public class PublicarRedmineUseCase {
 
+    public static final String OUTBOX_TIPO_PUBLICAR_REDMINE = "PUBLICAR_REQUISITO_REDMINE";
+
     private final RequisitoPort requisitoPort;
     private final SolicitacaoPort solicitacaoPort;
-    private final RedminePort redminePort;
+    private final OutboxPort outboxPort;
     private final AuditPort auditPort;
+    private final ObjectMapper objectMapper;
 
     public PublicarRedmineUseCase(RequisitoPort requisitoPort,
                                   SolicitacaoPort solicitacaoPort,
-                                  RedminePort redminePort,
-                                  AuditPort auditPort) {
+                                  OutboxPort outboxPort,
+                                  AuditPort auditPort,
+                                  ObjectMapper objectMapper) {
         this.requisitoPort  = requisitoPort;
         this.solicitacaoPort = solicitacaoPort;
-        this.redminePort    = redminePort;
-        this.auditPort      = auditPort;
+        this.outboxPort = outboxPort;
+        this.auditPort = auditPort;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -42,17 +50,31 @@ public class PublicarRedmineUseCase {
                     "Requisito já publicado no Redmine (issue #" + r.redmineIssueId() + ").");
         }
 
-        int issueId = redminePort.publicarRequisito(r);
-
-        Requisito publicado = new Requisito(
+        Requisito pendente = new Requisito(
                 r.id(), r.solicitacaoId(), r.correlationId(), r.titulo(),
                 r.historiaUsuario(), r.criteriosBdd(), r.confianca(),
-                StatusRequisito.PUBLICADO_REDMINE, issueId,
+                StatusRequisito.PUBLICACAO_REDMINE_PENDENTE, r.redmineIssueId(),
                 r.criadoEmUtc(), null);
 
-        Requisito salvo = requisitoPort.atualizar(publicado);
-        solicitacaoPort.atualizarStatus(r.solicitacaoId(), StatusSolicitacao.CONCLUIDA);
-        auditPort.registrar(correlationId, "REQUISITO_PUBLICADO_REDMINE", "issue#" + issueId);
+        Requisito salvo = requisitoPort.atualizar(pendente);
+        solicitacaoPort.atualizarStatus(r.solicitacaoId(), StatusSolicitacao.PROCESSANDO);
+
+        RedmineOutboxPayload payload = new RedmineOutboxPayload(r.id(), r.solicitacaoId(), correlationId);
+        outboxPort.enfileirar(OutboxMensagem.nova(
+                correlationId,
+                "redmine",
+                OUTBOX_TIPO_PUBLICAR_REDMINE,
+                serializar(payload)));
+
+        auditPort.registrar(correlationId, "REQUISITO_REDMINE_ENFILEIRADO", r.id().toString());
         return salvo;
+    }
+
+    private String serializar(RedmineOutboxPayload payload) {
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Falha ao serializar payload de outbox Redmine.", e);
+        }
     }
 }
