@@ -39,6 +39,25 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Preparar cache Maven para o scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if mvn -B -DskipTests dependency:resolve; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Falha ao preparar dependências Maven após 3 tentativas."
+              exit 1
+            fi
+            sleep $((attempt * 10))
+          done
       - name: Instalar Trivy
         run: |
           sudo apt-get update
