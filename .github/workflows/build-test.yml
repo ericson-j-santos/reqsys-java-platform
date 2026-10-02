@@ -30,8 +30,9 @@ jobs:
           retention-days: 7
 
   deploy:
+    # Fly.io retirado definitivamente pelo usuário em 2026-10-02.
+    if: ${{ false }}
     needs: build
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: producao
     steps:
