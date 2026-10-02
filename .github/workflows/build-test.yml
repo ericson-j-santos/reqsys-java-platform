@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, dev, develop ]
   pull_request:
-    branches: [ main, dev, develop ]
+    branches: [ main, dev, develop, feature/planner-teams-disparo-governado ]
 
 jobs:
   build:
@@ -17,7 +17,7 @@ jobs:
           java-version: '21'
           cache: maven
       - name: Build and test
-        run: mvn -B clean verify -Dmaven.test.skip=true
+        run: mvn -B clean verify
       - name: Upload cofre JAR
         uses: actions/upload-artifact@v4
         with:
