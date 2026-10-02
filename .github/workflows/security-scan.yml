@@ -44,20 +44,8 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Preparar cache Maven para o scanner
-        shell: bash
-        run: |
-          set -euo pipefail
-          for attempt in 1 2 3; do
-            if mvn -B -pl apps/reqsys-enterprise-api -am -DskipTests dependency:resolve; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "::error::Falha ao preparar dependências Maven após 3 tentativas."
-              exit 1
-            fi
-            sleep $((attempt * 10))
-          done
+      - name: Instalar dependências Maven no cache local
+        run: mvn -B -pl apps/reqsys-enterprise-api -am -DskipTests install
       - name: Instalar Trivy
         run: |
           sudo apt-get update
