@@ -6,28 +6,50 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class ProcessarPlannerSyncUseCaseTest {
 
     @Test
-    void deveDispararMensagemTeamsQuandoStatusAlterar() {
+    void deveEnfileirarMensagemTeamsQuandoStatusAlterar() {
         var teamsPort = new TeamsPortSpy(true);
-        var useCase = new ProcessarPlannerSyncUseCase(teamsPort);
+        var outboxService = mock(TeamsNotificationOutboxService.class);
+        when(outboxService.registrarEventoSeNaoExistir(
+                eq("corr-123"),
+                eq("idem-123"),
+                eq("planner-123"),
+                eq("usuario@exemplo.com"),
+                anyString()
+        )).thenReturn(true);
+        var useCase = new ProcessarPlannerSyncUseCase(teamsPort, outboxService);
         var request = new PlannerSyncRequest("planner-123", "PENDENTE", "CONCLUIDO", "usuario@exemplo.com");
 
         var response = useCase.executar("corr-123", "idem-123", request);
 
         assertNotNull(response);
         assertEquals("PROCESSADO", response.status());
-        assertEquals("NOTIFICACAO_TEAMS_DISPARADA", response.acao());
-        assertEquals(1, teamsPort.totalEnvios);
-        assertEquals("usuario@exemplo.com", teamsPort.ultimoDestinatario);
+        assertEquals("NOTIFICACAO_TEAMS_ENFILEIRADA", response.acao());
+        assertEquals(0, teamsPort.totalEnvios);
+        verify(outboxService).registrarEventoSeNaoExistir(
+                eq("corr-123"),
+                eq("idem-123"),
+                eq("planner-123"),
+                eq("usuario@exemplo.com"),
+                contains("Status atual: `CONCLUIDO`")
+        );
     }
 
     @Test
     void naoDeveDispararMensagemTeamsQuandoStatusNaoAlterar() {
         var teamsPort = new TeamsPortSpy(true);
-        var useCase = new ProcessarPlannerSyncUseCase(teamsPort);
+        var outboxService = mock(TeamsNotificationOutboxService.class);
+        var useCase = new ProcessarPlannerSyncUseCase(teamsPort, outboxService);
         var request = new PlannerSyncRequest("planner-123", "PENDENTE", "PENDENTE", "usuario@exemplo.com");
 
         var response = useCase.executar("corr-123", "idem-123", request);
@@ -36,12 +58,12 @@ class ProcessarPlannerSyncUseCaseTest {
         assertEquals("PROCESSADO", response.status());
         assertEquals("SEM_ALTERACAO", response.acao());
         assertEquals(0, teamsPort.totalEnvios);
+        verifyNoInteractions(outboxService);
     }
 
     private static class TeamsPortSpy implements TeamsPort {
         private final boolean usuarioExiste;
         private int totalEnvios;
-        private String ultimoDestinatario;
 
         private TeamsPortSpy(boolean usuarioExiste) {
             this.usuarioExiste = usuarioExiste;
@@ -50,7 +72,6 @@ class ProcessarPlannerSyncUseCaseTest {
         @Override
         public void enviarMensagemUsuario(String emailDestinatario, String mensagemMarkdown) {
             this.totalEnvios++;
-            this.ultimoDestinatario = emailDestinatario;
         }
 
         @Override
