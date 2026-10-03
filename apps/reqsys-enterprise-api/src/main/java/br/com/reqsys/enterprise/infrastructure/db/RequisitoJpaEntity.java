@@ -3,6 +3,8 @@ package br.com.reqsys.enterprise.infrastructure.db;
 import br.com.reqsys.enterprise.domain.Requisito;
 import br.com.reqsys.enterprise.domain.StatusRequisito;
 import jakarta.persistence.*;
+import org.hibernate.Length;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -24,10 +26,12 @@ public class RequisitoJpaEntity {
     @Column(name = "titulo", nullable = false, length = 500)
     private String titulo;
 
-    @Column(name = "historia_usuario", columnDefinition = "NVARCHAR(MAX)")
+    @Nationalized
+    @Column(name = "historia_usuario", length = Length.LONG32)
     private String historiaUsuario;
 
-    @Column(name = "criterios_bdd", columnDefinition = "NVARCHAR(MAX)")
+    @Nationalized
+    @Column(name = "criterios_bdd", length = Length.LONG32)
     private String criteriosBdd;
 
     @Column(name = "confianca", length = 20)
