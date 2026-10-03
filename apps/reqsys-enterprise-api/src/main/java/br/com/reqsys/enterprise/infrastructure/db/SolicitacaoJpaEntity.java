@@ -3,6 +3,8 @@ package br.com.reqsys.enterprise.infrastructure.db;
 import br.com.reqsys.enterprise.domain.Solicitacao;
 import br.com.reqsys.enterprise.domain.StatusSolicitacao;
 import jakarta.persistence.*;
+import org.hibernate.Length;
+import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,7 +20,8 @@ public class SolicitacaoJpaEntity {
     @Column(name = "correlation_id", nullable = false, length = 80)
     private String correlationId;
 
-    @Column(name = "texto_bruto", nullable = false, columnDefinition = "NVARCHAR(MAX)")
+    @Nationalized
+    @Column(name = "texto_bruto", nullable = false, length = Length.LONG32)
     private String textoBruto;
 
     @Column(name = "origem", nullable = false, length = 120)
